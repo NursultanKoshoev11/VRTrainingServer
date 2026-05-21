@@ -24,8 +24,6 @@ services:
     image: vrtraining-server:local
     container_name: vrtraining-api
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       APP_ENV: ${APP_ENV:-production}
       SERVER_PORT: ${SERVER_PORT:-8080}
@@ -41,12 +39,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "/app/vrtraining-server-healthcheck"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
 
 volumes:
   postgres_data:

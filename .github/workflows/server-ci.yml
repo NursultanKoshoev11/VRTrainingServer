@@ -1,0 +1,56 @@
+name: Server CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test Go server
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Show Go environment
+        run: |
+          go version
+          go env GOPATH
+          go env GOMOD
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify module files
+        run: go mod tidy -diff
+
+      - name: Run formatting check
+        run: |
+          test -z "$(gofmt -l .)"
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build API binary
+        run: go build -trimpath -o dist/vrtraining-server ./cmd/api
+
+      - name: Upload server binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vrtraining-server-linux-amd64
+          path: dist/vrtraining-server
+          if-no-files-found: error

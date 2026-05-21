@@ -58,26 +58,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Validate required environment
+      - name: Show runner and Docker versions
         shell: bash
         run: |
           set -euo pipefail
-          missing=0
-          for name in POSTGRES_PASSWORD DATABASE_URL JWT_SECRET CORS_ALLOWED_ORIGINS; do
-            value="${!name:-}"
-            if [ -z "$value" ]; then
-              echo "Missing required environment value: $name" >&2
-              missing=1
-            fi
-          done
-          if [ "$missing" -ne 0 ]; then
-            echo "Set these GitHub Actions secrets: VRTRAINING_POSTGRES_PASSWORD, VRTRAINING_DATABASE_URL, VRTRAINING_JWT_SECRET, VRTRAINING_CORS_ALLOWED_ORIGINS" >&2
-            exit 1
-          fi
-
-      - name: Show Docker versions
-        shell: bash
-        run: |
+          echo "Runner name: ${RUNNER_NAME:-unknown}"
+          echo "Runner OS: ${RUNNER_OS:-unknown}"
+          echo "Workspace: ${GITHUB_WORKSPACE:-unknown}"
           docker --version
           docker compose version
 

@@ -10,7 +10,9 @@ on:
       - "migrations/**"
       - "Dockerfile"
       - "docker-compose.yml"
-      - "scripts/deploy-self-hosted.ps1"
+      - "go.mod"
+      - "go.sum"
+      - "scripts/**"
       - ".github/workflows/windows-docker.yml"
   pull_request:
     branches: [ main ]
@@ -20,22 +22,132 @@ on:
       - "migrations/**"
       - "Dockerfile"
       - "docker-compose.yml"
-      - "scripts/deploy-self-hosted.ps1"
+      - "go.mod"
+      - "go.sum"
+      - "scripts/**"
       - ".github/workflows/windows-docker.yml"
 
 permissions:
   contents: read
 
+concurrency:
+  group: vrtraining-windows-docker
+  cancel-in-progress: false
+
 jobs:
-  run:
-    name: Run Docker stack on Windows runner
+  build-run-check:
+    name: Compile image and run Docker stack on local Windows runner
     runs-on: [self-hosted]
-    timeout-minutes: 30
+    timeout-minutes: 45
+
+    env:
+      APP_ENV: production
+      SERVER_PORT: 8080
+      POSTGRES_DB: vrtraining
+      POSTGRES_USER: vrtraining
+      POSTGRES_PASSWORD: change_this_password
+      DATABASE_URL: postgres://vrtraining:change_this_password@postgres:5432/vrtraining?sslmode=disable
+      JWT_SECRET: local-dev-secret-change-before-production
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+      REPORT_STORAGE_PATH: /app/reports
+      MIGRATIONS_PATH: /app/migrations
+      LOG_LEVEL: info
+      COMPOSE_PROJECT_NAME: vrtraining
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run stack
+      - name: Show runner information
         shell: powershell
-        run: .\scripts\deploy-self-hosted.ps1
+        run: |
+          $ErrorActionPreference = "Stop"
+          Write-Host "Runner name: $env:RUNNER_NAME"
+          Write-Host "Runner OS: $env:RUNNER_OS"
+          Write-Host "Workspace: $env:GITHUB_WORKSPACE"
+          Write-Host "Computer: $env:COMPUTERNAME"
+
+      - name: Check Docker installation
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          docker --version
+          docker compose version
+          docker info
+
+      - name: Validate Docker Compose configuration
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          docker compose config
+
+      - name: Stop previous stack
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Continue"
+          docker compose down --remove-orphans
+          docker ps -a
+
+      - name: Build server Docker image
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          docker compose build --no-cache api
+
+      - name: Start Docker stack
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          docker compose up -d --remove-orphans
+          docker ps -a
+          docker compose ps
+
+      - name: Wait for API health
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $healthUrl = "http://localhost:$env:SERVER_PORT/health"
+          Write-Host "Waiting for $healthUrl"
+          $healthy = $false
+          for ($attempt = 1; $attempt -le 90; $attempt++) {
+            try {
+              $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 5
+              if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
+                Write-Host "API health check passed."
+                Write-Host $response.Content
+                $healthy = $true
+                break
+              }
+            } catch {
+              if (($attempt % 10) -eq 0) {
+                Write-Host "Healthcheck attempt $attempt failed. Current containers:"
+                docker ps -a
+                docker compose ps
+                Write-Host "Recent API logs:"
+                docker compose logs --no-color --tail=120 api
+                Write-Host "Recent Postgres logs:"
+                docker compose logs --no-color --tail=80 postgres
+              }
+              Start-Sleep -Seconds 2
+            }
+          }
+          if (-not $healthy) {
+            throw "API health check failed after 90 attempts."
+          }
+
+      - name: Print final container status
+        if: always()
+        shell: powershell
+        run: |
+          docker ps -a
+          docker compose ps
+
+      - name: Print API logs
+        if: always()
+        shell: powershell
+        run: docker compose logs --no-color --tail=220 api
+
+      - name: Print Postgres logs
+        if: always()
+        shell: powershell
+        run: docker compose logs --no-color --tail=160 postgres

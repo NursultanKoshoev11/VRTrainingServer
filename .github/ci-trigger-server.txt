@@ -1,0 +1,1 @@
+Trigger Server CI on GitHub-hosted runner.

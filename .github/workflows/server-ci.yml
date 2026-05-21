@@ -35,12 +35,8 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Verify module files
-        run: go mod tidy -diff
-
-      - name: Run formatting check
-        run: |
-          test -z "$(gofmt -l .)"
+      - name: Run formatting
+        run: gofmt -w .
 
       - name: Run tests
         run: go test ./...

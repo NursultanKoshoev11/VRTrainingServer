@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Self-hosted Docker deployment script for VRTrainingServer.
 SERVER_PORT="${SERVER_PORT:-8080}"
 HEALTH_URL="http://localhost:${SERVER_PORT}/health"
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-vrtraining}"

@@ -1,5 +1,6 @@
 $ErrorActionPreference = "Stop"
 
+# Windows Docker deployment check for VRTrainingServer.
 $env:APP_ENV = if ($env:APP_ENV) { $env:APP_ENV } else { "production" }
 $env:SERVER_PORT = if ($env:SERVER_PORT) { $env:SERVER_PORT } else { "8080" }
 $env:POSTGRES_DB = if ($env:POSTGRES_DB) { $env:POSTGRES_DB } else { "vrtraining" }

@@ -14,6 +14,18 @@ on:
       - "go.sum"
       - "scripts/deploy-self-hosted.sh"
       - ".github/workflows/deploy-self-hosted.yml"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "cmd/**"
+      - "internal/**"
+      - "migrations/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "go.mod"
+      - "go.sum"
+      - "scripts/deploy-self-hosted.sh"
+      - ".github/workflows/deploy-self-hosted.yml"
 
 permissions:
   contents: read

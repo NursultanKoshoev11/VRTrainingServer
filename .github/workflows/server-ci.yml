@@ -35,6 +35,9 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      - name: Prepare module sums
+        run: go mod tidy
+
       - name: Run formatting
         run: gofmt -w .
 

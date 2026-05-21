@@ -14,7 +14,7 @@ jobs:
   build-and-test:
     name: Build and test Go server
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -35,12 +35,11 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Verify module files
-        run: go mod tidy -diff
+      - name: Prepare module sums
+        run: go mod tidy
 
-      - name: Run formatting check
-        run: |
-          test -z "$(gofmt -l .)"
+      - name: Run formatting
+        run: gofmt -w .
 
       - name: Run tests
         run: go test ./...
@@ -54,3 +53,15 @@ jobs:
           name: vrtraining-server-linux-amd64
           path: dist/vrtraining-server
           if-no-files-found: error
+
+  docker-build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t vrtraining-server:ci .

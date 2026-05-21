@@ -27,5 +27,5 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run stack
-        shell: pwsh
-        run: ./scripts/deploy-self-hosted.ps1
+        shell: powershell
+        run: .\scripts\deploy-self-hosted.ps1
